@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Valentune</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.8/dist/cdn.min.js"></script>
+</head>
+<body class="bg-red-50 min-h-screen p-4 max-w-md mx-auto">
+    <h1 class="text-3xl font-bold text-red-600 mb-6 mt-4">Edit Your Mix</h1>
+    <div x-data="editForm()">
+        <form @submit.prevent="submitEdit" class="space-y-4">
+            <input x-model="formData.recipient_name" type="text" required class="w-full border p-2 rounded" placeholder="To">
+            <input x-model="formData.sender_name" type="text" class="w-full border p-2 rounded" placeholder="From">
+            <textarea x-model="formData.message" required maxlength="500" class="w-full border p-2 rounded h-24" placeholder="Message"></textarea>
+            
+            <template x-for="(song, index) in formData.songs" :key="index">
+                <div class="bg-white p-3 rounded shadow mb-3">
+                    <input x-model="song.youtube_id" placeholder="Video ID" required class="w-full border p-2 mb-2 rounded text-sm">
+                    <input x-model="song.title" placeholder="Song Title" required class="w-full border p-2 mb-2 rounded text-sm">
+                    <input x-model="song.note" placeholder="Optional note" class="w-full border p-2 rounded text-sm">
+                    <button type="button" @click="formData.songs.splice(index, 1)" class="text-red-500 text-sm mt-2 font-bold" x-show="formData.songs.length > 3">Remove</button>
+                </div>
+            </template>
+            
+            <button type="button" @click="formData.songs.push({youtube_id:'', title:'', note:'', order_index: formData.songs.length})" x-show="formData.songs.length < 15" class="bg-gray-200 w-full p-2 rounded font-bold">+ Add Song</button>
+            <button type="submit" class="bg-red-600 text-white font-bold w-full p-3 rounded shadow-lg mt-6 hover:bg-red-700">Save Changes</button>
+            <p x-text="statusMsg" class="font-bold mt-2 text-green-600"></p>
+        </form>
+    </div>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('editForm', () => ({
+                formData: {
+                    recipient_name: '{{ playlist.recipient_name }}',
+                    sender_name: '{{ playlist.sender_name }}',
+                    message: '{{ playlist.message }}',
+                    theme: '{{ playlist.theme }}',
+                    songs: [
+                        {% for song in songs %}
+                        {youtube_id: '{{ song.youtube_id }}', title: '{{ song.title }}', note: '{{ song.note or '' }}', order_index: {{ song.order_index }}},
+                        {% endfor %}
+                    ]
+                },
+                statusMsg: '',
+                async submitEdit() {
+                    const res = await fetch(`/api/playlists/{{ playlist.edit_token }}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.formData)
+                    });
+                    if(res.ok) this.statusMsg = "Saved successfully!";
+                }
+            }))
+        })
+    </script>
+</body>
+</html>
