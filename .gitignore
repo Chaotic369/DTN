@@ -1,0 +1,11 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Database
+valentune.db
+
+# Environment variables
+.env
