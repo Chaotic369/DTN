@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create a Valentune</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.8/dist/cdn.min.js"></script>
+</head>
+<body class="bg-red-50 min-h-screen text-gray-800 p-4 max-w-md mx-auto" x-data="playlistForm()">
+    <div x-show="!successData">
+        <h1 class="text-3xl font-bold text-red-600 mb-6 mt-4">Make a Mix</h1>
+        <form @submit.prevent="submitForm" class="space-y-4">
+            <div>
+                <label class="block font-bold mb-1">To (Recipient)</label>
+                <input x-model="formData.recipient_name" type="text" required class="w-full border p-2 rounded">
+            </div>
+            <div>
+                <label class="block font-bold mb-1">From (Sender)</label>
+                <input x-model="formData.sender_name" type="text" placeholder="Someone who loves you" class="w-full border p-2 rounded">
+            </div>
+            <div>
+                <label class="block font-bold mb-1">Message (Max 500 chars)</label>
+                <textarea x-model="formData.message" required maxlength="500" class="w-full border p-2 rounded h-24"></textarea>
+            </div>
+            <div class="border-t border-gray-300 pt-4">
+                <h2 class="text-xl font-bold mb-2">Songs (Min 3, Max 15)</h2>
+                <template x-for="(song, index) in formData.songs" :key="index">
+                    <div class="bg-white p-3 rounded shadow mb-3">
+                        <input x-model="song.youtube_id" placeholder="YouTube Video ID" required class="w-full border p-2 mb-2 rounded text-sm">
+                        <input x-model="song.title" placeholder="Song Title" required class="w-full border p-2 mb-2 rounded text-sm">
+                        <input x-model="song.note" placeholder="Optional note (max 140 chars)" maxlength="140" class="w-full border p-2 rounded text-sm">
+                        <button type="button" @click="removeSong(index)" class="text-red-500 text-sm mt-2 font-bold" x-show="formData.songs.length > 3">Remove Song</button>
+                    </div>
+                </template>
+                <button type="button" @click="addSong" x-show="formData.songs.length < 15" class="bg-gray-200 w-full p-2 rounded font-bold">+ Add Another Song</button>
+            </div>
+            <button type="submit" class="bg-red-600 text-white font-bold w-full p-3 rounded shadow-lg mt-6 hover:bg-red-700">Generate Share Link</button>
+            <p x-text="errorMessage" class="text-red-500 mt-2 font-bold"></p>
+        </form>
+    </div>
+    <div x-show="successData" class="mt-10 bg-white p-6 rounded-lg shadow-xl border border-red-100" style="display: none;">
+        <h2 class="text-2xl font-bold text-green-600 mb-4">Your playlist is ready!</h2>
+        <p class="font-bold mb-1">Share this link with them:</p>
+        <div class="bg-gray-100 p-3 rounded mb-6 break-all font-mono text-sm" x-text="`${window.location.origin}/p/${successData?.slug}`"></div>
+        <div class="border-t pt-4">
+            <p class="font-bold text-red-600 mb-1">⚠️ Save your edit link!</p>
+            <p class="text-sm text-gray-600 mb-2">This cannot be recovered if lost.</p>
+            <div class="bg-red-50 p-3 rounded border border-red-200 break-all font-mono text-sm" x-text="`${window.location.origin}/edit/${successData?.edit_token}`"></div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('playlistForm', () => ({
+                formData: {
+                    recipient_name: '', sender_name: '', message: '', theme: 'classic_red',
+                    songs: [
+                        {youtube_id: '', title: '', note: '', order_index: 0},
+                        {youtube_id: '', title: '', note: '', order_index: 1},
+                        {youtube_id: '', title: '', note: '', order_index: 2}
+                    ]
+                },
+                successData: null,
+                errorMessage: '',
+                addSong() {
+                    if (this.formData.songs.length < 15) {
+                        this.formData.songs.push({youtube_id: '', title: '', note: '', order_index: this.formData.songs.length});
+                    }
+                },
+                removeSong(index) {
+                    if (this.formData.songs.length > 3) this.formData.songs.splice(index, 1);
+                },
+                async submitForm() {
+                    try {
+                        const response = await fetch('/api/playlists', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.formData)
+                        });
+                        if (!response.ok) throw new Error(await response.text());
+                        this.successData = await response.json();
+                    } catch (e) {
+                        this.errorMessage = "Failed to create: " + e.message;
+                    }
+                }
+            }))
+        })
+    </script>
+</body>
+</html>
